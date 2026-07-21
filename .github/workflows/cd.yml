@@ -22,14 +22,29 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
 
           script: |
+            # Install Docker if it is not installed
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Docker not found. Installing Docker..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl enable docker
+              sudo systemctl start docker
+            fi
+
+            # Verify Docker installation
+            docker --version
+
             IMAGE=${{ secrets.DOCKER_USERNAME }}/myapp
             TAG=${{ github.event.workflow_run.head_sha }}
 
+            # Stop and remove existing container (if any)
             sudo docker stop myapp || true
             sudo docker rm myapp || true
 
+            # Pull latest image
             sudo docker pull $IMAGE:$TAG
 
+            # Run new container
             sudo docker run -d \
               --restart always \
               --name myapp \
